@@ -39,6 +39,10 @@ jobs:
         with:
           packages: "platform-tools"
 
+      - name: Set up Rust & Android Targets
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+
       - name: Extract and Compile Android Project
         id: compile
         continue-on-error: true
@@ -58,11 +62,30 @@ jobs:
           fi
 
           cd "$PROJECT_DIR"
+
+          # Инициализируем git-репозиторий, чтобы build.gradle.kts не падал на git rev-list (код 128)
+          git init -q
+          git config user.name "Builder"
+          git config user.email "builder@local"
+          git add -A
+          git commit -q -m "Initial commit" --allow-empty
+
+          # Настраиваем NDK, если он доступен на раннере
+          NDK_PATH=$(find /usr/local/lib/android/sdk/ndk -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)
+          if [ -z "$NDK_PATH" ] && [ -n "$ANDROID_HOME" ]; then
+            NDK_PATH=$(find "$ANDROID_HOME/ndk" -maxdepth 1 -mindepth 1 2>/dev/null | sort -V | tail -n 1)
+          fi
+          if [ -n "$NDK_PATH" ]; then
+            export ANDROID_NDK_HOME="$NDK_PATH"
+            export ANDROID_NDK_ROOT="$NDK_PATH"
+            echo "ndk.dir=$NDK_PATH" >> local.properties
+          fi
+
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
-            ./gradlew ${{ inputs.gradle_task }} --no-daemon --stacktrace > /tmp/artifact_out/build_log.txt 2>&1
+            ./gradlew ${{ inputs.gradle_task }} --no-daemon --no-configuration-cache --stacktrace > /tmp/artifact_out/build_log.txt 2>&1
           else
-            gradle ${{ inputs.gradle_task }} --no-daemon --stacktrace > /tmp/artifact_out/build_log.txt 2>&1
+            gradle ${{ inputs.gradle_task }} --no-daemon --no-configuration-cache --stacktrace > /tmp/artifact_out/build_log.txt 2>&1
           fi
 
           find "$PROJECT_DIR" -name "*.apk" -exec cp {} /tmp/artifact_out/ \;
