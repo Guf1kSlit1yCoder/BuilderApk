@@ -1,7 +1,7 @@
 name: Cloud APK Builder
 run-name: "Build ${{ inputs.job_id }}"
 
-on:
+'on':
   workflow_dispatch:
     inputs:
       job_id:
@@ -98,24 +98,8 @@ jobs:
             sed -i 's/android.useAndroidX=false/android.useAndroidX=true/g' app/gradle.properties
           fi
 
-          # Авто-фикс путей AIDL: если package не совпадает с папкой (например, com/ghostlock/ vs com/altro/)
-          python3 -c "
-import re, shutil
-from pathlib import Path
-for f in Path('.').rglob('*.aidl'):
-    text = f.read_text(encoding='utf-8', errors='ignore')
-    m = re.search(r'^[ 	]*package[ 	]+([a-zA-Z0-9_.]+)[ 	]*;', text, re.M)
-    if m:
-        pkg = m.group(1).replace('.', '/')
-        parts = f.parts
-        if 'aidl' in parts:
-            idx = parts.index('aidl')
-            expected = Path(*parts[:idx+1]) / pkg / f.name
-            if f.resolve() != expected.resolve():
-                print(f'AIDL auto-fix: relocating {f} -> {expected}')
-                expected.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(f), str(expected))
-"
+          # Авто-фикс путей AIDL
+          python3 -c "import re, shutil, pathlib; [shutil.move(str(f), str(pathlib.Path(*f.parts[:f.parts.index('aidl')+1]) / re.search(r'package\s+([a-zA-Z0-9_.]+)', f.read_text(errors='ignore')).group(1).replace('.', '/') / f.name)) for f in pathlib.Path('.').rglob('*.aidl') if 'aidl' in f.parts and re.search(r'package\s+([a-zA-Z0-9_.]+)', f.read_text(errors='ignore')) and (pathlib.Path(*f.parts[:f.parts.index('aidl')+1]) / re.search(r'package\s+([a-zA-Z0-9_.]+)', f.read_text(errors='ignore')).group(1).replace('.', '/')).mkdir(parents=True, exist_ok=True) is None and f.resolve() != (pathlib.Path(*f.parts[:f.parts.index('aidl')+1]) / re.search(r'package\s+([a-zA-Z0-9_.]+)', f.read_text(errors='ignore')).group(1).replace('.', '/') / f.name).resolve()]" 2>/dev/null || true
 
           # Настройки ускорения Gradle и компилятора
           echo "org.gradle.parallel=true" >> gradle.properties
