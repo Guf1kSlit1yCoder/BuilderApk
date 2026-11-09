@@ -13,10 +13,6 @@ on:
       - master
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   ONDK_VERSION: "r30.1"
 
@@ -24,6 +20,7 @@ jobs:
   build:
     name: Build AltroRoot APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
 
