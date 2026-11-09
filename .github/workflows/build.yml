@@ -18,7 +18,7 @@ env:
 
 jobs:
   build:
-    name: Build AltroRoot APK
+    name: Build SaKuRaRoot APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -111,27 +111,27 @@ jobs:
             export KEY_ALIAS="${{ secrets.ALIAS }}"
             export KEY_PASSWORD="${{ secrets.KEY_PASSWORD }}"
             ./gradlew :app:assembleRelease --no-daemon
-            cp build/app/outputs/apk/release/*.apk AltroRoot.apk
+            cp build/app/outputs/apk/release/*.apk SaKuRaRoot.apk
           else
             echo "No signing secret found, building standard debug APK..."
             ./gradlew :app:assembleDebug --no-daemon
-            cp build/app/outputs/apk/debug/*.apk AltroRoot.apk
+            cp build/app/outputs/apk/debug/*.apk SaKuRaRoot.apk
           fi
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AltroRoot-APK
-          path: AltroRoot.apk
+          name: SaKuRaRoot-APK
+          path: SaKuRaRoot.apk
 
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "AltroRoot Latest Build"
-          body: "Автоматическая сборка AltroRoot с новым дизайном Google Play / Material 3."
-          files: AltroRoot.apk
+          name: "SaKuRaRoot Latest Build"
+          body: "Автоматическая сборка SaKuRaRoot с новым дизайном Google Play / Material 3."
+          files: SaKuRaRoot.apk
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
